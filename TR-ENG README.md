@@ -1,4 +1,4 @@
-# Personalized Book Recommendation System Powered by LLMs | Kişiselleştirilmiş Kitap Öneri Sistemi (LLM Destekli)
+#  Personalized Book Recommendation System Powered by LLMs | Kişiselleştirilmiş Kitap Öneri Sistemi (LLM Destekli)
 
 This project aims to provide personalized book recommendations through natural conversation using generative AI.  
 Bu proje, doğal bir sohbet aracılığıyla kullanıcıya özel kitap önerileri sunmayı amaçlayan bir üretici yapay zeka sistemidir.
@@ -59,7 +59,14 @@ Dataset link: [Goodreads Best Books Ever](https://www.kaggle.com/datasets/arnabc
 
 ```bash
 # Install dependencies | Gerekli paketleri yükleyin
-pip install -r requirements.txt
+pip install flask
+pip install flask-cors
+pip install pandas
+pip install numpy
+pip install sentence-transformers
+pip install scikit-learn
+pip install requests
+
 
 # Run backend | Arka ucu çalıştırın
 python app.py
