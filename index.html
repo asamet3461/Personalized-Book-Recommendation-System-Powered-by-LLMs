@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Recommender</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .chat-container {
+            background-color: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            height: 60vh;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+        .message {
+            margin-bottom: 15px;
+            padding: 12px 16px;
+            border-radius: 18px;
+            max-width: 80%;
+            line-height: 1.5;
+            word-wrap: break-word;
+        }
+        .user-message {
+            background-color: #e3f2fd;
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+        }
+        .bot-message {
+            background-color: #f1f1f1;
+            margin-right: auto;
+            border-bottom-left-radius: 4px;
+        }
+        .recommendation {
+            background-color: #e8f5e9 !important;
+            border-left: 4px solid #4CAF50;
+        }
+        #chat-form {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        #user-input {
+            flex-grow: 1;
+            padding: 12px 16px;
+            border-radius: 24px;
+            border: 1px solid #ddd;
+            font-size: 16px;
+            outline: none;
+            transition: border 0.3s;
+        }
+        #user-input:focus {
+            border-color: #4CAF50;
+        }
+        button {
+            padding: 12px 24px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 24px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .typing {
+            opacity: 0.6;
+            font-style: italic;
+            color: #666;
+        }
+        .rating-display {
+            color: #FFA500;
+            font-weight: bold;
+            margin-left: 5px;
+        }
+        .book-title {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        .book-author {
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+        .recommendation-header {
+            margin-bottom: 10px;
+        }
+        .book-recommendation {
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        .book-recommendation:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        .book-rating {
+            margin: 5px 0;
+        }
+        .book-genres {
+            margin: 5px 0;
+            color: #666;
+            font-size: 0.9em;
+        }
+        .book-description {
+            margin-top: 8px;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+        @media (max-width: 600px) {
+            .chat-container {
+                height: 65vh;
+                padding: 15px;
+            }
+            #user-input, button {
+                padding: 10px 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>📚 Book Recommendation Assistant</h1>
+    <div class="chat-container" id="chat-container">
+        <div class="message bot-message">
+            Hi there! I'm your book recommendation assistant. Tell me about books you've enjoyed, your favorite genres, or what you're in the mood to read next!
+        </div>
+    </div>
+    <form id="chat-form">
+        <input type="text" id="user-input" placeholder="Type your message here..." autocomplete="off" required>
+        <button type="submit">Send</button>
+    </form>
+
+    <script>
+        const chatForm = document.getElementById('chat-form');
+        const userInput = document.getElementById('user-input');
+        const chatContainer = document.getElementById('chat-container');
+        let conversation = [
+            {role: "system", content: "You're a friendly book recommender. Ask questions to understand the user's taste in books."}
+        ];
+
+        // Track questions asked
+        let questionsAsked = 0;
+        const minQuestions = 4;
+
+        // Function to add a message to the chat
+        function addMessage(text, sender, isRecommendation = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}-message${isRecommendation ? ' recommendation' : ''}`;
+            messageDiv.innerHTML = text;
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // Add typing indicator
+        function addTypingIndicator() {
+            const typingIndicator = document.createElement('div');
+            typingIndicator.className = 'message bot-message typing';
+            typingIndicator.textContent = 'Thinking...';
+            chatContainer.appendChild(typingIndicator);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            return typingIndicator;
+        }
+
+        // Remove typing indicator
+        function removeTypingIndicator(indicator) {
+            if (indicator && indicator.parentNode) {
+                chatContainer.removeChild(indicator);
+            }
+        }
+
+        // Format recommendations
+                function formatRecommendations(recData) {
+            return `
+                <div class="recommendation-header">
+                    <strong>Based on:</strong> "${recData.preferences}"
+                </div>
+                ${recData.recommendations.map(book => `
+                    <div class="book-recommendation">
+                        <div class="book-title">📖 ${book.title}</div>
+                        <div class="book-author">✍️ ${book.author}</div>
+                        <div class="book-meta">
+                            <span class="book-rating">⭐ ${book.rating.toFixed(1)}/5</span>
+                            <span class="book-genres">🏷️ ${book.genres}</span>
+                        </div>
+                        <div class="book-description">${book.description}</div>
+                    </div>
+                `).join('')}
+                <div class="rating-note">${recData.rating_note}</div>
+            `;
+        }
+
+        // Handle recommendations
+        async function handleRecommendations() {
+            const typingIndicator = addTypingIndicator();
+
+            try {
+                const recResponse = await fetch('/recommend', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        conversation: conversation
+                    }),
+                });
+
+                removeTypingIndicator(typingIndicator);
+                const recData = await recResponse.json();
+
+                // Format and display recommendations
+                const recommendationsHTML = formatRecommendations(recData);
+                addMessage(recommendationsHTML, 'bot', true);
+
+            } catch (error) {
+                console.error('Error:', error);
+                removeTypingIndicator(typingIndicator);
+                addMessage("Sorry, I couldn't generate recommendations. Please try again.", 'bot');
+            }
+        }
+
+        // Handle form submission
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const message = userInput.value.trim();
+            if (!message) return;
+
+            addMessage(message, 'user');
+            userInput.value = '';
+
+            // Show typing indicator
+            const typingIndicator = addTypingIndicator();
+
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        conversation: conversation
+                    }),
+                });
+
+                const data = await response.json();
+                removeTypingIndicator(typingIndicator);
+
+                // Track if this is a question
+                const isQuestion = data.reply.endsWith('?') && !data.should_recommend;
+                if (isQuestion) questionsAsked++;
+
+                // Only show the bot's reply (no recommendations yet)
+                addMessage(data.reply, 'bot');
+                conversation = data.conversation;
+
+                // Handle recommendations separately if conditions are met
+                if (data.should_recommend && questionsAsked >= minQuestions) {
+                    await handleRecommendations();
+                }
+
+            } catch (error) {
+                console.error('Error:', error);
+                removeTypingIndicator(typingIndicator);
+                addMessage("Sorry, I encountered an error. Please try again.", 'bot');
+            }
+        });
+
+        // Focus input on load
+        userInput.focus();
+    </script>
+</body>
+</html>
